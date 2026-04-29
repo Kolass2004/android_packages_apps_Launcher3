@@ -211,7 +211,7 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
 
     private boolean canHandleLongPress() {
         return AbstractFloatingView.getTopOpenView(mLauncher) == null
-                && (mLauncher.isInState(NORMAL) || mLauncher.isInState(EDIT_MODE));
+                && mLauncher.isInState(NORMAL);
     }
 
     private void cancelLongPress() {
@@ -250,7 +250,9 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
 
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
-        // Exit multi-select mode when the user taps on empty workspace space
+        // Only exit multi-select on empty workspace space taps.
+        // Never consume if there's an open floating view (e.g. search popup, IME-triggered UI).
+        if (AbstractFloatingView.getTopOpenView(mLauncher) != null) return false;
         com.android.launcher3.MultiSelectController msc = mLauncher.getMultiSelectController();
         if (msc != null && msc.isSelectionMode()) {
             msc.exitSelectionMode();
