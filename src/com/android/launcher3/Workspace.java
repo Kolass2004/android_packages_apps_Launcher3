@@ -2360,6 +2360,81 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         TestEventEmitter.sendEvent(TestEvent.WORKSPACE_ON_DROP);
     }
 
+    private void onDropMultiSelect(DragObject d, DragOptions options) {
+        mDragViewVisualCenter = d.getVisualCenter(mDragViewVisualCenter);
+        CellLayout dropTargetLayout = mDropToLayout;
+        if (dropTargetLayout == null || d.cancelled) {
+            // Restore occupied state for cancelled drag
+            for (CellInfo cInfo : mMultiDragInfos) {
+                CellLayout layout = getScreenWithId(((ItemInfo) cInfo.cell.getTag()).screenId);
+                if (layout != null) {
+                    layout.markCellsAsOccupiedForView(cInfo.cell);
+                }
+            }
+            mIsMultiSelectDrag = false;
+            mLauncher.getMultiSelectController().onDragCancelled();
+            return;
+        }
+
+        mapPointFromDropLayout(dropTargetLayout, mDragViewVisualCenter);
+
+        int count = mMultiDragInfos.size();
+        java.util.List<int[]> vacantCells = dropTargetLayout.findMultipleVacantCells(count, 1, 1);
+        CellLayout targetLayout = dropTargetLayout;
+
+        int placedCount = 0;
+        for (CellInfo cInfo : mMultiDragInfos) {
+            View cell = cInfo.cell;
+            ItemInfo info = (ItemInfo) cell.getTag();
+            
+            int cellX = -1, cellY = -1;
+
+            if (placedCount < vacantCells.size()) {
+                cellX = vacantCells.get(placedCount)[0];
+                cellY = vacantCells.get(placedCount)[1];
+            } else {
+                addExtraEmptyScreens();
+                com.android.launcher3.util.IntSet newScreens = commitExtraEmptyScreens();
+                if (!newScreens.isEmpty()) {
+                    int newScreenId = newScreens.getArray().toArray()[0];
+                    targetLayout = mWorkspaceScreens.get(newScreenId);
+                    if (targetLayout != null) {
+                        java.util.List<int[]> newVacantCells = targetLayout.findMultipleVacantCells(count - placedCount, 1, 1);
+                        if (!newVacantCells.isEmpty()) {
+                            vacantCells.addAll(newVacantCells);
+                            cellX = vacantCells.get(placedCount)[0];
+                            cellY = vacantCells.get(placedCount)[1];
+                        }
+                    }
+                }
+            }
+
+            if (cellX != -1 && cellY != -1) {
+                int screenId = getCellLayoutId(targetLayout);
+
+                if (cell.getParent() != null) {
+                    ((android.view.ViewGroup) cell.getParent()).removeView(cell);
+                }
+
+                addInScreen(cell, LauncherSettings.Favorites.CONTAINER_DESKTOP, screenId, cellX, cellY, info.spanX, info.spanY);
+                targetLayout.markCellsAsOccupiedForView(cell);
+                mLauncher.getModelWriter().modifyItemInDatabase(info, LauncherSettings.Favorites.CONTAINER_DESKTOP, screenId, cellX, cellY, info.spanX, info.spanY);
+                
+                cell.setVisibility(VISIBLE);
+                if (cell instanceof BubbleTextView) {
+                    ((BubbleTextView) cell).setMultiSelected(false);
+                }
+            }
+            
+            placedCount++;
+        }
+
+        mIsMultiSelectDrag = false;
+        mMultiDragInfos.clear();
+        mLauncher.getMultiSelectController().onDragCompleted();
+        removeExtraEmptyScreenDelayed(500, false, null);
+    }
+
     @Nullable
     private Runnable getWidgetResizeFrameRunnable(DragOptions options,
             LauncherAppWidgetHostView hostView, CellLayout cellLayout) {
@@ -3576,7 +3651,13 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
      * Calls {@link #snapToPage(int)} on the {@link #DEFAULT_PAGE}, then requests focus on it.
      */
     public void moveToDefaultScreen() {
-        int page = DEFAULT_PAGE;
+        int savedScreenId = LauncherPrefs.get(getContext()).get(LauncherPrefs.DEFAULT_HOME_SCREEN_ID);
+        int page;
+        if (savedScreenId >= 0 && mWorkspaceScreens.containsKey(savedScreenId)) {
+            page = getPageIndexForScreenId(savedScreenId);
+        } else {
+            page = DEFAULT_PAGE;
+        }
         if (!workspaceInModalState() && getNextPage() != page) {
             snapToPage(page);
         }

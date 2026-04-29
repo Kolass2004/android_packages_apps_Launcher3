@@ -33,6 +33,7 @@ import com.android.launcher3.CellLayout;
 import com.android.launcher3.DragSource;
 import com.android.launcher3.DropTarget;
 import com.android.launcher3.Launcher;
+import com.android.launcher3.MultiSelectController;
 import com.android.launcher3.Workspace;
 import com.android.launcher3.celllayout.CellInfo;
 import com.android.launcher3.config.FeatureFlags;
@@ -79,6 +80,24 @@ public class ItemLongClickListener {
         if (!(v.getTag() instanceof ItemInfo)) return false;
 
         ItemInfo info = (ItemInfo) v.getTag();
+
+        MultiSelectController msc = launcher.getMultiSelectController();
+        if (msc != null && info.container == com.android.launcher3.LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+            if (!msc.isSelectionMode()) {
+                msc.enterSelectionMode();
+                msc.selectItem(v, info);
+                return true;
+            } else {
+                if (!msc.isSelected(info)) {
+                    msc.selectItem(v, info);
+                }
+                launcher.setWaitingForResult(null);
+                CellInfo longClickCellInfo = new CellInfo(v, info,
+                        launcher.getCellPosMapper().mapModelToPresenter(info));
+                launcher.getWorkspace().startMultiSelectDrag(longClickCellInfo, new DragOptions());
+                return true;
+            }
+        }
 
         if (v instanceof FolderIcon) {
             FolderIcon folder = (FolderIcon) v;

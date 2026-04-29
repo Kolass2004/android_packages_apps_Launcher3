@@ -399,6 +399,9 @@ public class Launcher extends StatefulActivity<LauncherState>
     // Request id for any pending activity result
     protected int mPendingActivityRequestCode = -1;
 
+    private MultiSelectController mMultiSelectController;
+    private android.widget.Button mSetDefaultHomeButton;
+
     private ViewGroupFocusHelper mFocusHandler;
 
     private RotationHelper mRotationHelper;
@@ -470,6 +473,7 @@ public class Launcher extends StatefulActivity<LauncherState>
         idp.addOnChangeListener(this);
         mSharedPrefs = LauncherPrefs.getPrefs(this);
         mAccessibilityDelegate = createAccessibilityDelegate();
+        mMultiSelectController = new MultiSelectController(this);
 
         initDragController();
         mAllAppsController = new AllAppsTransitionController(this);
@@ -477,6 +481,37 @@ public class Launcher extends StatefulActivity<LauncherState>
         if (refactorTaskbarUiState()) {
             mStateManager.setLauncherUiState(mLauncherUiState);
         }
+        setupViews();
+
+        mSetDefaultHomeButton = new android.widget.Button(this);
+        mSetDefaultHomeButton.setText("Set as Default Home");
+        mSetDefaultHomeButton.setVisibility(View.GONE);
+        mSetDefaultHomeButton.setBackgroundResource(android.R.drawable.btn_default);
+        mSetDefaultHomeButton.setTextColor(android.graphics.Color.WHITE);
+        android.widget.FrameLayout.LayoutParams params = new android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT);
+        params.gravity = android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL;
+        params.topMargin = 100;
+        getDragLayer().addView(mSetDefaultHomeButton, params);
+        
+        mSetDefaultHomeButton.setOnClickListener(v -> {
+            int currentPage = mWorkspace.getCurrentPage();
+            int screenId = mWorkspace.getScreenIdForPageIndex(currentPage);
+            LauncherPrefs.get(this).put(LauncherPrefs.DEFAULT_HOME_SCREEN_ID, screenId);
+            android.widget.Toast.makeText(this, "Set page " + (currentPage + 1) + " as default", 
+                android.widget.Toast.LENGTH_SHORT).show();
+        });
+
+        getStateManager().addStateListener(new StateManager.StateListener<LauncherState>() {
+            @Override
+            public void onStateTransitionStart(LauncherState toState) {}
+            
+            @Override
+            public void onStateTransitionComplete(LauncherState finalState) {
+                mSetDefaultHomeButton.setVisibility(finalState == EDIT_MODE ? View.VISIBLE : View.GONE);
+            }
+        });
 
         mAppWidgetManager = new WidgetManagerHelper(this);
         mAppWidgetHolder = LauncherWidgetHolder.newInstance(this);
@@ -2134,6 +2169,10 @@ public class Launcher extends StatefulActivity<LauncherState>
     @Override
     @TargetApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public void onBackPressed() {
+        if (mMultiSelectController != null && mMultiSelectController.isSelectionMode()) {
+            mMultiSelectController.exitSelectionMode();
+            return;
+        }
         getOnBackAnimationCallback().onBackInvoked();
     }
 
@@ -2993,6 +3032,10 @@ public class Launcher extends StatefulActivity<LauncherState>
     @Override
     public StringCache getStringCache() {
         return mModelCallbacks.getStringCache();
+    }
+
+    public MultiSelectController getMultiSelectController() {
+        return mMultiSelectController;
     }
 
     /**

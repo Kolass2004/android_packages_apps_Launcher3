@@ -76,6 +76,7 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
     private int mLongPressState = STATE_CANCELLED;
 
     private final GestureDetector mGestureDetector;
+    private final android.view.ScaleGestureDetector mScaleDetector;
 
     public WorkspaceTouchListener(Launcher launcher, Workspace<?> workspace) {
         mLauncher = launcher;
@@ -84,10 +85,22 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
         // likely to cause movement.
         mTouchSlop = 2 * ViewConfiguration.get(launcher).getScaledTouchSlop();
         mGestureDetector = new GestureDetector(workspace.getContext(), this);
+        mScaleDetector = new android.view.ScaleGestureDetector(workspace.getContext(),
+                new android.view.ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                    @Override
+                    public boolean onScale(android.view.ScaleGestureDetector detector) {
+                        if (detector.getScaleFactor() < 0.85f && mLauncher.isInState(NORMAL)) {
+                            mLauncher.getStateManager().goToState(EDIT_MODE);
+                            return true;
+                        }
+                        return false;
+                    }
+                });
     }
 
     @Override
     public boolean onTouch(View view, MotionEvent ev) {
+        mScaleDetector.onTouchEvent(ev);
         mGestureDetector.onTouchEvent(ev);
 
         int action = ev.getActionMasked();
@@ -157,10 +170,15 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
 
         if (action == ACTION_UP || action == ACTION_POINTER_UP) {
             if (!mWorkspace.isHandlingTouch()) {
-                final CellLayout currentPage =
-                        (CellLayout) mWorkspace.getChildAt(mWorkspace.getCurrentPage());
-                if (currentPage != null) {
-                    mWorkspace.onWallpaperTap(ev);
+                com.android.launcher3.MultiSelectController msc = mLauncher.getMultiSelectController();
+                if (msc != null && msc.isSelectionMode()) {
+                    msc.exitSelectionMode();
+                } else {
+                    final CellLayout currentPage =
+                            (CellLayout) mWorkspace.getChildAt(mWorkspace.getCurrentPage());
+                    if (currentPage != null) {
+                        mWorkspace.onWallpaperTap(ev);
+                    }
                 }
             }
         }

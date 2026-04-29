@@ -240,6 +240,11 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     private final String mMinimizedStateDescription;
     private final String mRunningStateDescription;
 
+    private boolean mIsMultiSelected;
+    private Paint mMultiSelectBgPaint;
+    private Paint mMultiSelectBadgePaint;
+    private Paint mMultiSelectCheckPaint;
+
     @NonNull
     @Override
     public PoppableType getPoppableType() {
@@ -371,6 +376,20 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         setEllipsize(TruncateAt.END);
         setAccessibilityDelegate(mActivity.getAccessibilityDelegate());
         setTextAlpha(1f);
+
+        mMultiSelectBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mMultiSelectBgPaint.setColor(Themes.getAttrColor(context, R.attr.workspaceAccentColor));
+        mMultiSelectBgPaint.setAlpha(80); // Semi-transparent overlay
+
+        mMultiSelectBadgePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mMultiSelectBadgePaint.setColor(Themes.getAttrColor(context, R.attr.workspaceAccentColor));
+
+        mMultiSelectCheckPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mMultiSelectCheckPaint.setColor(Themes.getAttrColor(context, R.attr.workspaceTextColor));
+        mMultiSelectCheckPaint.setStyle(Paint.Style.STROKE);
+        mMultiSelectCheckPaint.setStrokeWidth(Utilities.dpToPx(2f));
+        mMultiSelectCheckPaint.setStrokeCap(Paint.Cap.ROUND);
+        mMultiSelectCheckPaint.setStrokeJoin(Paint.Join.ROUND);
     }
 
     @Override
@@ -396,6 +415,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         cancelDotScaleAnim();
         mDotParams.scale = 0f;
         mForceHideDot = false;
+        mIsMultiSelected = false;
         setBackground(null);
         configureMinimalPopup(false);
 
@@ -867,6 +887,53 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
         super.onDraw(canvas);
         drawDotIfNecessary(canvas);
         drawRunningAppIndicatorIfNecessary(canvas);
+        drawMultiSelectIfNecessary(canvas);
+    }
+
+    /**
+     * Toggles the multi-select visual state and animates a slight scale bounce.
+     */
+    public void setMultiSelected(boolean isMultiSelected) {
+        if (mIsMultiSelected != isMultiSelected) {
+            mIsMultiSelected = isMultiSelected;
+            invalidate();
+            
+            // Subtle bounce animation for tactile feedback
+            animate().scaleX(0.9f).scaleY(0.9f).setDuration(100)
+                    .withEndAction(() -> animate().scaleX(1f).scaleY(1f).setDuration(100).start())
+                    .start();
+        }
+    }
+
+    private void drawMultiSelectIfNecessary(Canvas canvas) {
+        if (!mIsMultiSelected) return;
+
+        getIconBounds(mDotParams.iconBounds);
+        Utilities.scaleRectAboutCenter(mDotParams.iconBounds, ICON_VISIBLE_AREA_FACTOR);
+        final int scrollX = getScrollX();
+        final int scrollY = getScrollY();
+        canvas.translate(scrollX, scrollY);
+
+        Rect bounds = mDotParams.iconBounds;
+        float radius = Math.min(bounds.width(), bounds.height()) / 2f;
+        float cx = bounds.centerX();
+        float cy = bounds.centerY();
+
+        // 1. Draw semi-transparent overlay
+        canvas.drawCircle(cx, cy, radius, mMultiSelectBgPaint);
+
+        // 2. Draw checkmark badge in top-right
+        float badgeRadius = radius * 0.35f;
+        float badgeCx = bounds.right - badgeRadius;
+        float badgeCy = bounds.top + badgeRadius;
+        canvas.drawCircle(badgeCx, badgeCy, badgeRadius, mMultiSelectBadgePaint);
+
+        // 3. Draw checkmark
+        float checkSize = badgeRadius * 0.5f;
+        canvas.drawLine(badgeCx - checkSize, badgeCy, badgeCx - checkSize * 0.2f, badgeCy + checkSize * 0.8f, mMultiSelectCheckPaint);
+        canvas.drawLine(badgeCx - checkSize * 0.2f, badgeCy + checkSize * 0.8f, badgeCx + checkSize, badgeCy - checkSize * 0.5f, mMultiSelectCheckPaint);
+
+        canvas.translate(-scrollX, -scrollY);
     }
 
     /**

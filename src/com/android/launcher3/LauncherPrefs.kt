@@ -254,6 +254,7 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField val SHOW_DESKTOP_LABELS = backedUpItem("pref_desktop_show_labels", true)
         @JvmField val SHOW_DRAWER_LABELS = backedUpItem("pref_drawer_show_labels", true)
         @JvmField val SLEEP_GESTURE = backedUpItem("pref_sleep_gesture", false)
+        @JvmField val DEFAULT_HOME_SCREEN_ID = backedUpItem("pref_default_home_screen_id", -1)
         @JvmField
         val PROMISE_ICON_IDS = nonRestorableItem(InstallSessionHelper.PROMISE_ICON_IDS, "")
         @JvmField val WORKSPACE_ICON_SCALE = backedUpItem("pref_workspace_icon_scale", 1.0f)

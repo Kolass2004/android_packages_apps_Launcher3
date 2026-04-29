@@ -1979,6 +1979,38 @@ public class CellLayout extends ViewGroup {
         return mOccupied.isRegionVacant(x, y, spanX, spanY);
     }
 
+    /**
+     * Finds up to 'count' non-overlapping vacant areas for the given span.
+     * Scans left-to-right (respecting RTL) and top-to-bottom.
+     * 
+     * @return List of {cellX, cellY} coordinates
+     */
+    public java.util.List<int[]> findMultipleVacantCells(int count, int spanX, int spanY) {
+        java.util.List<int[]> vacantCells = new java.util.ArrayList<>();
+        boolean isRtl = com.android.launcher3.Utilities.isRtl(getResources());
+        
+        for (int y = 0; y < mCountY && vacantCells.size() < count; y++) {
+            for (int x = 0; x < mCountX && vacantCells.size() < count; x++) {
+                int startX = isRtl ? mCountX - 1 - x : x;
+                if (isRegionVacant(startX, y, spanX, spanY)) {
+                    // Check if it overlaps with any previously found vacant cell for this batch
+                    boolean overlaps = false;
+                    for (int[] prev : vacantCells) {
+                        if (startX < prev[0] + spanX && startX + spanX > prev[0] &&
+                            y < prev[1] + spanY && y + spanY > prev[1]) {
+                            overlaps = true;
+                            break;
+                        }
+                    }
+                    if (!overlaps) {
+                        vacantCells.add(new int[]{startX, y});
+                    }
+                }
+            }
+        }
+        return vacantCells;
+    }
+
     public void setSpaceBetweenCellLayoutsPx(@Px int spaceBetweenCellLayoutsPx) {
         mSpaceBetweenCellLayoutsPx = spaceBetweenCellLayoutsPx;
     }

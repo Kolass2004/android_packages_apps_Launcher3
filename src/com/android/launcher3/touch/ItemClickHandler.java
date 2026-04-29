@@ -98,6 +98,15 @@ public class ItemClickHandler {
         Launcher launcher = Launcher.getLauncher(v.getContext());
         if (!launcher.getWorkspace().isFinishedSwitchingState()) return;
 
+        com.android.launcher3.MultiSelectController msc = launcher.getMultiSelectController();
+        if (msc != null && msc.isSelectionMode() && v.getTag() instanceof ItemInfo) {
+            ItemInfo info = (ItemInfo) v.getTag();
+            if (info.container == LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+                msc.toggleSelection(v, info);
+                return;
+            }
+        }
+
         Object tag = v.getTag();
         if (tag instanceof WorkspaceItemInfo) {
             onClickAppShortcut(v, (WorkspaceItemInfo) tag, launcher);
