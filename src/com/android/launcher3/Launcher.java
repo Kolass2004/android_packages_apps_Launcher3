@@ -481,6 +481,11 @@ public class Launcher extends StatefulActivity<LauncherState>
         if (refactorTaskbarUiState()) {
             mStateManager.setLauncherUiState(mLauncherUiState);
         }
+        mAppWidgetManager = new WidgetManagerHelper(this);
+        mAppWidgetHolder = LauncherWidgetHolder.newInstance(this);
+        mAppWidgetHolder.setAppWidgetRemovedCallback(
+                appWidgetId -> getWorkspace().removeWidget(appWidgetId));
+
         setupViews();
 
         mSetDefaultHomeButton = new android.widget.Button(this);
@@ -513,12 +518,6 @@ public class Launcher extends StatefulActivity<LauncherState>
             }
         });
 
-        mAppWidgetManager = new WidgetManagerHelper(this);
-        mAppWidgetHolder = LauncherWidgetHolder.newInstance(this);
-        mAppWidgetHolder.setAppWidgetRemovedCallback(
-                appWidgetId -> getWorkspace().removeWidget(appWidgetId));
-
-        setupViews();
         updateDisallowBack();
 
         mAppWidgetHolder.startListening();
