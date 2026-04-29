@@ -216,6 +216,8 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
      * CellInfo for the cell that is currently being dragged
      */
     protected CellInfo mDragInfo;
+    public java.util.List<CellInfo> mMultiDragInfos = new java.util.ArrayList<>();
+    public boolean mIsMultiSelectDrag = false;
 
     /**
      * Target drop area calculated during last acceptDrop call.
@@ -1696,6 +1698,35 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         page.getShortcutsAndWidgets().setImportantForAccessibility(accessibilityFlag);
         page.setContentDescription(null);
         page.setAccessibilityDelegate(null);
+    }
+
+    public void startMultiSelectDrag(CellInfo cellInfo, DragOptions options) {
+        MultiSelectController msc = mLauncher.getMultiSelectController();
+        if (msc == null || !msc.isSelectionMode()) {
+            startDrag(cellInfo, options);
+            return;
+        }
+
+        mIsMultiSelectDrag = true;
+        mMultiDragInfos.clear();
+
+        for (java.util.Map.Entry<ItemInfo, android.view.View> entry : msc.getSelectedViews().entrySet()) {
+            ItemInfo info = entry.getKey();
+            android.view.View child = entry.getValue();
+            
+            CellLayout layout = getScreenWithId(info.screenId);
+            if (layout != null) {
+                layout.markCellsAsUnoccupiedForView(child);
+            }
+            
+            CellInfo cInfo = new CellInfo(child, info, mLauncher.getCellPosMapper().mapModelToPresenter(info));
+            mMultiDragInfos.add(cInfo);
+        }
+
+        msc.onDragStarted();
+        
+        // Start drag using the primary clicked item
+        startDrag(cellInfo, options);
     }
 
     public void startDrag(CellInfo cellInfo, DragOptions options) {

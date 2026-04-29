@@ -23,6 +23,7 @@ import static android.view.MotionEvent.ACTION_UP;
 
 import static com.android.launcher3.LauncherState.ALL_APPS;
 import static com.android.launcher3.LauncherState.NORMAL;
+import static com.android.launcher3.LauncherState.EDIT_MODE;
 import static com.android.launcher3.Utilities.shouldEnableMouseInteractionChanges;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ALLAPPS_CLOSE_TAP_OUTSIDE;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_SPLIT_SELECTION_EXIT_INTERRUPTED;
