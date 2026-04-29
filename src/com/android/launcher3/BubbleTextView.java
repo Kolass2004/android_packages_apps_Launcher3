@@ -470,6 +470,10 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
 
     @UiThread
     public void applyFromWorkspaceItem(WorkspaceItemInfo info) {
+        // Reset multi-select visual state when view is rebound
+        if (mIsMultiSelected) {
+            mIsMultiSelected = false;
+        }
         applyIconAndLabel(info);
         setItemInfo(info);
 
@@ -479,6 +483,10 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
 
     @UiThread
     public void applyFromApplicationInfo(AppInfo info) {
+        // Reset multi-select visual state when view is rebound
+        if (mIsMultiSelected) {
+            mIsMultiSelected = false;
+        }
         applyIconAndLabel(info);
         setItemInfo(info);
 

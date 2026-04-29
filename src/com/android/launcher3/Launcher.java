@@ -514,7 +514,19 @@ public class Launcher extends StatefulActivity<LauncherState>
             
             @Override
             public void onStateTransitionComplete(LauncherState finalState) {
-                mSetDefaultHomeButton.setVisibility(finalState == EDIT_MODE ? View.VISIBLE : View.GONE);
+                boolean inEditMode = finalState == EDIT_MODE;
+                boolean inMultiSelect = mMultiSelectController != null
+                        && mMultiSelectController.isSelectionMode();
+                mSetDefaultHomeButton.setVisibility(
+                        inEditMode && !inMultiSelect ? View.VISIBLE : View.GONE);
+            }
+        });
+
+        // Also hide button when multi-select mode is entered or exited while in EDIT_MODE
+        mMultiSelectController.addListener(isSelectionMode -> {
+            if (isInState(EDIT_MODE)) {
+                mSetDefaultHomeButton.setVisibility(
+                        isSelectionMode ? View.GONE : View.VISIBLE);
             }
         });
 

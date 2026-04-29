@@ -172,9 +172,14 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
         if (action == ACTION_UP || action == ACTION_POINTER_UP) {
             if (!mWorkspace.isHandlingTouch()) {
                 com.android.launcher3.MultiSelectController msc = mLauncher.getMultiSelectController();
-                if (msc != null && msc.isSelectionMode()) {
+                // Only exit selection mode if we detected a long-press-completed gesture
+                // on empty workspace space (STATE_COMPLETED means the long-press menu fired,
+                // not that an icon was tapped and consumed the event already).
+                if (msc != null && msc.isSelectionMode()
+                        && mLongPressState == STATE_COMPLETED) {
+                    // Empty-space long press completed — exit selection mode
                     msc.exitSelectionMode();
-                } else {
+                } else if (msc == null || !msc.isSelectionMode()) {
                     final CellLayout currentPage =
                             (CellLayout) mWorkspace.getChildAt(mWorkspace.getCurrentPage());
                     if (currentPage != null) {
@@ -206,7 +211,7 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
 
     private boolean canHandleLongPress() {
         return AbstractFloatingView.getTopOpenView(mLauncher) == null
-                && mLauncher.isInState(NORMAL);
+                && (mLauncher.isInState(NORMAL) || mLauncher.isInState(EDIT_MODE));
     }
 
     private void cancelLongPress() {
@@ -244,6 +249,17 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
     }
 
     @Override
+    public boolean onSingleTapUp(MotionEvent e) {
+        // Exit multi-select mode when the user taps on empty workspace space
+        com.android.launcher3.MultiSelectController msc = mLauncher.getMultiSelectController();
+        if (msc != null && msc.isSelectionMode()) {
+            msc.exitSelectionMode();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
     public boolean onDoubleTap(MotionEvent event) {
         if (LauncherPrefs.SLEEP_GESTURE.get(mWorkspace.getContext())) {
             mLauncher.onSleepEvent(event);
@@ -252,3 +268,4 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
         return false;
     }
 }
+
