@@ -513,6 +513,8 @@ android_app {
 
     static_libs: [
         "Launcher3ResLib",
+        "ax_compose",
+        "SettingsLibSettingsTheme",
     ],
     srcs: [
         ":launcher-src",
